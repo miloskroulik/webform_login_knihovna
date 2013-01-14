@@ -1,0 +1,3 @@
+name = Přihlášení do katalogu
+description = Formulář pro přesměrování čtenáře na jeho čtenářský účet.
+core = 7.x

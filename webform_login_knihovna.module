@@ -1,0 +1,181 @@
+<?php
+
+/**
+ * @file
+ * Formulář pro přesměrování čtenáře na jeho čtenářský účet.
+ */
+
+function webform_login_knihovna_form($form, &$form_state) {
+$form = array();
+$form['#action'] = url('http://knihovna.lit.cz/katalog/l.dll?oct1');
+$form['#attributes'] = array('name' => array('ff'),'target' => array('_blank'));
+$form['oct1~'] = array(
+  '#weight' => '0',
+  '#required' => '0',
+  '#type' => 'hidden',
+  '#title' => t('Oct1 (hidden)'),
+);
+$form['CC'] = array(
+  '#required' => '1',
+  '#weight' => '1',
+  '#size' => '24',
+  '#type' => 'password',
+  '#title' => t('Posledních 5 čísel Vaší průkazky'),
+);
+$form['RC'] = array(
+  '#required' => '1',
+  '#description' => t('Zadejte své rodné číslo ve formátu RRMMDD, např. 990101.'),
+  '#size' => '24',
+  '#weight' => '2',
+  '#type' => 'password',
+  '#title' => t('PIN'),
+);
+$form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Přihlásit se'),
+    '#weight' => '3',
+  );
+$form['popis'] = array(
+'#markup' => t('<div class="description">Po stisknutí tlačítka budete přesměrováni do nového okna.</div>'),
+'#weight' => '4',
+);
+return $form;
+}
+/**
+ * Submit handler for form_example_element_demo_form().
+ */
+function webform_login_knihovna_form_submit($form, &$form_state) {
+  // Exclude unnecessary elements.
+  unset($form_state['values']['submit'], $form_state['values']['form_id'], $form_state['values']['op'], $form_state['values']['form_token'], $form_state['values']['form_build_id']);
+
+  foreach ($form_state['values'] as $key => $value) {
+    variable_set($key, $value);
+    drupal_set_message(t('%name has value %value', array('%name' => $key, '%value' => print_r($value, TRUE))));
+  }
+}
+
+/**
+ * Called by form_example_theme() to provide hook_theme().
+ *
+ * This is kept in this file so it can be with the theme functions it presents.
+ * Otherwise it would get lonely.
+ */
+function _webform_login_knihovna_theme() {
+  return array(
+    'webform_login_knihovna_inline_form_element' => array(
+      'render element' => 'element',
+    )
+  );
+}
+
+/**
+ * Formats child form elements as inline elements.
+ */
+function theme_webform_login_knihovna_inline_form_element($variables) {
+  $element = $variables['element'];
+
+  // Add element #id for #type 'item'.
+  if (isset($element['#markup']) && !empty($element['#id'])) {
+    $attributes['id'] = $element['#id'];
+  }
+  // Add element's #type and #name as class to aid with JS/CSS selectors.
+  $attributes['class'] = array('form-item');
+  if (!empty($element['#type'])) {
+    $attributes['class'][] = 'form-type-' . strtr($element['#type'], '_', '-');
+  }
+  if (!empty($element['#name'])) {
+    $attributes['class'][] = 'form-item-' . strtr($element['#name'], array(' ' => '-', '_' => '-', '[' => '-', ']' => ''));
+  }
+  // Add a class for disabled elements to facilitate cross-browser styling.
+  if (!empty($element['#attributes']['disabled'])) {
+    $attributes['class'][] = 'form-disabled';
+  }
+  $output = '<div' . drupal_attributes($attributes) . '>' . "\n";
+
+  // If #title is not set, we don't display any label or required marker.
+  if (!isset($element['#title'])) {
+    $element['#title_display'] = 'none';
+  }
+  $prefix = isset($element['#field_prefix']) ? '<span class="field-prefix">' . $element['#field_prefix'] . '</span> ' : '';
+  $suffix = isset($element['#field_suffix']) ? ' <span class="field-suffix">' . $element['#field_suffix'] . '</span>' : '';
+
+  switch ($element['#title_display']) {
+    case 'before':
+      $output .= ' ' . theme('form_element_label', $variables);
+      $output .= ' ' . '<div class="container-inline">' . $prefix . $element['#children'] . $suffix . "</div>\n";
+      break;
+
+    case 'invisible':
+    case 'after':
+      $output .= ' ' . $prefix . $element['#children'] . $suffix;
+      $output .= ' ' . theme('form_element_label', $variables) . "\n";
+      break;
+
+    case 'none':
+    case 'attribute':
+      // Output no label and no required marker, only the children.
+      $output .= ' ' . $prefix . $element['#children'] . $suffix . "\n";
+      break;
+  }
+
+  if (!empty($element['#description'])) {
+    $output .= ' <div class="description">' . $element['#description'] . "</div>\n";
+  }
+
+  $output .= "</div>\n";
+
+  return $output;
+}
+/**
+ * Implements hook_theme().
+ *
+ * The only theme implementation is by the element example. To keep the various
+ * parts of the example together, this actually returns
+ * _form_example_element_theme().
+ */
+function webform_login_knihovna_theme() {
+  return _webform_login_knihovna_theme();
+}
+/**
+ * Implements hook_block_info().
+ *
+ * This hook declares what blocks are provided by the module.
+ */
+function webform_login_knihovna_block_info() {
+  // This hook returns an array, each component of which is an array of block
+  // information. The array keys are the 'delta' values used in other block
+  // hooks.
+
+  // The required block information is a block description, which is shown
+  // to the site administrator in the list of possible blocks. You can also
+  // provide initial settings for block weight, status, etc.
+
+  // Many options are defined in hook_block_info():
+  $blocks['prihlaseni_ctenare'] = array(
+    // info: The name of the block.
+    'info' => t('Přihlášení čtenáře'),
+    // Block caching options (per role, per user, etc.)
+  );
+  return $blocks;
+}
+/**
+ * Implements hook_block_view().
+ *
+ * This hook generates the contents of the blocks themselves.
+ */
+function webform_login_knihovna_block_view($delta = '') {
+  $block = array();
+  //The $delta parameter tells us which block is being requested.
+  switch ($delta) {
+    case 'prihlaseni_ctenare':
+      // The subject is displayed at the top of the block. Note that it
+      // should be passed through t() for translation. The title configured
+      // for the block using Drupal UI supercedes this one.
+      $block['subject'] = t('Přihlášení čtenáře');
+      // The content of the block is typically generated by calling a custom
+      // function.
+      $block['content'] = drupal_render(drupal_get_form('webform_login_knihovna_form'));
+      break;
+  }
+  return $block;
+}
